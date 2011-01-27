@@ -1,0 +1,17 @@
+NAME
+    Cache::KyotoTycoon::Serialize -
+
+SYNOPSIS
+      use Cache::KyotoTycoon::Serialize;
+
+DESCRIPTION
+    Cache::KyotoTycoon::Serialize is
+
+AUTHOR
+    Kenta Sato <kenta.sato.1990@gmail.com>
+
+SEE ALSO
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+

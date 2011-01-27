@@ -1,0 +1,8 @@
+use strict;
+use Cache::KyotoTycoon::Serialize (-serializer => sub{'nfreeze'}, -deserializer => sub{'thaw'});
+
+use Test::More tests => 2;
+
+my $obj = new Cache::KyotoTycoon::Serialize;
+is($obj->_serializer, 'nfreeze');
+is($obj->_deserializer, 'thaw');

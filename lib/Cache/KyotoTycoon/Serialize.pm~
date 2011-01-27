@@ -1,0 +1,32 @@
+package Cache::KyotoTycoon::Serialize;
+use strict;
+use warnings;
+our $VERSION = '0.01';
+
+1;
+__END__
+
+=head1 NAME
+
+Cache::KyotoTycoon::Serialize -
+
+=head1 SYNOPSIS
+
+  use Cache::KyotoTycoon::Serialize;
+
+=head1 DESCRIPTION
+
+Cache::KyotoTycoon::Serialize is
+
+=head1 AUTHOR
+
+Kenta Sato E<lt>kenta.sato.1990@gmail.comE<gt>
+
+=head1 SEE ALSO
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
