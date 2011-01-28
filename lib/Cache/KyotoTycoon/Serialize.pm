@@ -7,15 +7,12 @@ use Carp;
 
 use parent 'Cache::KyotoTycoon';
 
-use Storable qw(nfreeze thaw);
+use Storable;
 use Sub::Install qw(reinstall_sub);
 use List::MoreUtils qw(any);
 
-my @_setter = qw(set add replace append);
-our $AUTOLOAD;
-
-*_serialize = \&nfreeze;
-*_deserialize = \&thaw;
+*_serialize = \&Storable::nfreeze;
+*_deserialize = \&Storable::thaw;
 
 sub import{
     my($class, @args) = @_;
@@ -79,6 +76,40 @@ sub import{
     }
 }
 
+# setter
+
+
+sub set{
+    my ($self, @args) = @_;
+
+    $args[1] = _serialize($args[1]);
+
+    $self->SUPER::set(@args);
+}
+sub add{
+    my ($self, @args) = @_;
+
+    $args[1] = _serialize($args[1]);
+
+    $self->SUPER::add(@args);
+}
+sub replace{
+    my ($self, @args) = @_;
+
+    $args[1] = _serialize($args[1]);
+
+    $self->SUPER::replace(@args);
+}
+sub append{
+    my ($self, @args) = @_;
+
+    $args[1] = _serialize($args[1]);
+
+    $self->SUPER::append(@args);
+}
+
+# cas
+
 sub cas {
     my ($self, @args) = @_;
 
@@ -88,12 +119,18 @@ sub cas {
     $self->SUPER::cas(@args);
 }
 
+# getter
+
 sub get{
-    my @result = SUPER::get(@_);
+    my ($self, @args) = @_;
+
+    my @result = $self->SUPER::get(@args);
     $result[0] = _deserialize($result[0]);
 
-    return wantarray ? @result : $result[0]; 
+    return wantarray ? @result : $result[0];
 }
+
+# bulk
 
 sub set_bulk {
     my ($self, $vals, $xt) = @_;
@@ -123,38 +160,6 @@ sub get_bulk {
     }
     die "fatal error" unless keys(%ret) == $body->{num};
     return wantarray ? %ret : \%ret;
-}
-
-# AUTOLOAD
-
-sub setter{
-    my ($self, $setter, @args) = @_;
-
-    $args[1] = _serialize($args[1]);
-
-    {
-	no strict 'refs';
-	$self->$setter(@args);
-    }
-}
-
-sub AUTOLOAD{
-    my ($self, @args) = @_;
-
-    if($AUTOLOAD =~ m/(?:.*)::(.*)/io){
-	my $method = $1;
-	(any { $_ eq $method } @_setter) ?
-	    $self->setter($self, $method, @args):
-	    die('Undefined subroutine &' . $AUTOLOAD);
-    }
-}
-
-# DESTROY
-
-sub DESTROY{
-    my $self = shift;
-
-    $self->SUPER::DESTROY if(Cache::KyotoTycoon->can('DESTROY')); # for future
 }
 
 1;
