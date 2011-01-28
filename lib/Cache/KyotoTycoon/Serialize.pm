@@ -11,7 +11,7 @@ use Storable qw(nfreeze thaw);
 use Sub::Install qw(reinstall_sub);
 use List::MoreUtils qw(any);
 
-my $_setter = [qw(set add replace append)];
+my @_setter = qw(set add replace append);
 our $AUTOLOAD;
 
 *_serialize = \&nfreeze;
@@ -143,7 +143,7 @@ sub AUTOLOAD{
 
     if($AUTOLOAD =~ m/(?:.*)::(.*)/io){
 	my $method = $1;
-	(any { $_ eq $method } @$_setter) ?
+	(any { $_ eq $method } @_setter) ?
 	    $self->setter($self, $method, @args):
 	    die('Undefined subroutine &' . $AUTOLOAD);
     }
@@ -154,7 +154,7 @@ sub AUTOLOAD{
 sub DESTROY{
     my $self = shift;
 
-    $self->SUPER::DESTROY if(Cache::KyotoTycoon->can('DESTROY'));
+    $self->SUPER::DESTROY if(Cache::KyotoTycoon->can('DESTROY')); # for future
 }
 
 1;
@@ -162,21 +162,63 @@ __END__
 
 =head1 NAME
 
-Cache::KyotoTycoon::Serialize -
+Cache::KyotoTycoon::Serialize - serialize/deserialize support for Cache::KyotoTycoon
 
 =head1 SYNOPSIS
 
+  use Cache::KyotoTycoon;
+  use Cache::KyotoTycoon::Serialize qw(-compat);
+
+  my $dbi = Cache::KyotoTycoon->new(
+    addr => '127.0.0.1'
+  );
+
+  $dbi->add('key', +{
+    # datas ...
+  }); # You can pass any reference data to KyotoTycoon!
+
+or
+
   use Cache::KyotoTycoon::Serialize;
+
+  my $dbi = Cache::KyotoTycoon::Serialize->new(
+    addr => '127.0.0.1'
+  );
+
+  $dbi->add('key', +{
+    # datas ...
+  }); # You can pass reference data to KyotoTycoon!
+
+You can use the serialize/deserialize subroutine you like if you can pass options.
+
+  use Data::MessagePack;
+  use Cache::KyotoTycoon::Serialize(
+    -serializer   => sub{ Data::MessagePack->pack(shift); }
+    -deserializer => sub{ Data::MessagePack->unpack(shift); }
+  );
+
+  my $dbi = Cache::KyotoTycoon::Serialize->new(
+    addr => '127.0.0.1'
+  );
+
+  $dbi->add('key', +{
+    # datas ...
+  }); # You can pass reference data to KyotoTycoon!
 
 =head1 DESCRIPTION
 
-Cache::KyotoTycoon::Serialize is
+Cache::KyotoTycoon::Serialize is serialize/deserialize support for Cache::KyotoTycoon.
+If some module need Cache::* object and the module caching reference data,
+I propose you should use this module.
 
 =head1 AUTHOR
 
 Kenta Sato E<lt>kenta.sato.1990@gmail.comE<gt>
 
 =head1 SEE ALSO
+
+Cache::KyotoTycoon
+Storable
 
 =head1 LICENSE
 

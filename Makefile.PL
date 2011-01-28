@@ -7,12 +7,15 @@ readme_from $filepath;
 readme_pod_from $filepath;
 githubmeta;
 
-# requires '';
+requires 'Storable';
+requires 'Sub::Install';
+requires 'List::MoreUtils';
 
 tests 't/*.t';
 author_tests 'xt';
 
 build_requires 'Test::More';
+
 auto_set_repository;
 auto_include;
 WriteAll;
