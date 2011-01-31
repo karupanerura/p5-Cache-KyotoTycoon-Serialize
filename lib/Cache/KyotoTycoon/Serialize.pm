@@ -14,13 +14,33 @@ use List::MoreUtils qw(any);
 *_serialize = \&Storable::nfreeze;
 *_deserialize = \&Storable::thaw;
 
-sub import{
-    my($class, @args) = @_;
+sub options{
+    return (
+	serializer => sub{
+	    my($class, $value) = @_;
 
-    my $option_qr = qr/^-/;
+	    if(ref($value) eq 'CODE'){
+		*_serialize = $value;
+	    }else{
+		croak('serializer option need code reference.');
+	    }
+	},
+	deserializer => sub{
+	    my($class, $value) = @_;
 
-    my %_flags = (
-	-compat => sub{
+	    if(ref($value) eq 'CODE'){
+		*_deserialize = $value;
+	    }else{
+		croak('deserializer option need code reference.');
+	    }
+	},
+	@_
+    );
+}
+
+sub flags{
+    return (
+	compat => sub{
 	    my $class = shift;
 
 	    my $org =  \&Cache::KyotoTycoon::new;
@@ -34,50 +54,39 @@ sub import{
 		as => 'new',
 	    });
 	},
+	@_
     );
+}
 
-    my %_options = (
-	-serializer => sub{
-	    my($class, $value) = @_;
 
-	    if(ref($value) eq 'CODE'){
-		*_serialize = $value;
-	    }else{
-		croak('-serializer option need code reference.');
-	    }
-	},
-	-deserializer => sub{
-	    my($class, $value) = @_;
+sub import{
+    my($class, @args) = @_;
 
-	    if(ref($value) eq 'CODE'){
-		*_deserialize = $value;
-	    }else{
-		croak('-deserializer option need code reference.');
-	    }
-	},
-    );
+    my $option_qr = qr/^-/;
+
+    my %_flags = flags();
+    my %_options = options();
 
     while(scalar(@args)){
 	my $optname = shift(@args);
 
 	if($optname =~ $option_qr){
+	    $optname =~ s/$option_qr//;
+
 	    if(any {$_ eq $optname} keys %_flags){
 		$_flags{$optname}->($class);
-		next;
+	    }elsif(any {$_ eq $optname} keys %_options){
+		$_options{$optname}->($class, shift(@args));
+	    }else{
+		croak(qq|Undefined option '$optname'.|);
 	    }
-
-	    my $value = shift(@args);
-
-	    if(any {$_ eq $optname} keys %_options){
-		$_options{$optname}->($class, $value);
-		next;
-	    }
+	}else{
+	    croak('Import option purse faild.');
 	}
     }
 }
 
 # setter
-
 
 sub set{
     my ($self, @args) = @_;
@@ -86,6 +95,7 @@ sub set{
 
     $self->SUPER::set(@args);
 }
+
 sub add{
     my ($self, @args) = @_;
 
@@ -93,6 +103,7 @@ sub add{
 
     $self->SUPER::add(@args);
 }
+
 sub replace{
     my ($self, @args) = @_;
 
@@ -100,6 +111,7 @@ sub replace{
 
     $self->SUPER::replace(@args);
 }
+
 sub append{
     my ($self, @args) = @_;
 
@@ -132,33 +144,46 @@ sub get{
 
 # bulk
 
-sub set_bulk {
+sub set_bulk{
     my ($self, $vals, $xt) = @_;
+
     my %args = (DB => $self->db);
-    while (my ($k, $v) = each %$vals) {
+
+    while(my($k, $v) = each %$vals){
         $args{"_$k"} = _serialize($v);
     }
     $args{xt} = $xt if defined $xt;
+
     my ($code, $body, $msg) = $self->{client}->call('set_bulk', \%args);
-    Carp::croak _errmsg($code, $msg) unless $code eq '200';
+
+    Carp::croak Cache::KyotoTycoon::_errmsg($code, $msg) unless $code eq '200';
+
     return $body->{num};
 }
 
-sub get_bulk {
+sub get_bulk{
     my ($self, $keys) = @_;
+
     my %args = (DB => $self->db);
+
     for my $k (@$keys) {
         $args{"_$k"} = '';
     }
+
     my ($code, $body, $msg) = $self->{client}->call('get_bulk', \%args);
-    Carp::croak _errmsg($code, $msg) unless $code eq '200';
+
+    Carp::croak Cache::KyotoTycoon::_errmsg($code, $msg) unless $code eq '200';
+
     my %ret;
-    while (my ($k, $v) = each %$body) {
-        if ($k =~ /^_(.+)$/) {
+
+    while(my($k, $v) = each %$body) {
+        if($k =~ /^_(.+)$/){
             $ret{$1} = _deserialize($v);
         }
     }
+
     die "fatal error" unless keys(%ret) == $body->{num};
+
     return wantarray ? %ret : \%ret;
 }
 
